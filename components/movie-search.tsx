@@ -6,14 +6,14 @@ import { GenreFilter } from "./genre-filter"
 import { MovieCard } from "./movie-card"
 import { PaginationControls } from "./pagination-controls"
 import { Loader2 } from "lucide-react"
-import { type Movie, type GenreStats, searchMovies } from "@/lib/movies-api"
+import { Movie, searchMovies, GenreSummary } from "@/lib/movies-api"
 
 interface MovieSearchProps {
   initialMovies: Movie[]
   initialPage: number
   initialTotalPages: number
   initialTotal: number
-  genres: GenreStats[]
+  genres: GenreSummary[]
   initialSearch?: string
   initialGenre?: string
 }
@@ -39,22 +39,13 @@ export function MovieSearch({
     setIsLoading(true)
     try {
 
-      searchMovies
+      const resp = await searchMovies({page: page, limit: 12, search: search, genre: genre!});
 
-      const params = new URLSearchParams()
-      params.append("page", page.toString())
-      params.append("limit", "12")
-      if (search) params.append("search", search)
-      if (genre) params.append("genre", genre)
+      setMovies(resp.data);
+      setCurrentPage(page);
+      setTotalPages(resp.totalPages);
+      setTotalResults(resp.total);
 
-      const response = await fetch(`/api/movies?${params.toString()}`)
-      if (!response.ok) throw new Error("Failed to fetch movies")
-
-      const data = await response.json()
-      setMovies(data.data)
-      setCurrentPage(data.page)
-      setTotalPages(data.total_pages)
-      setTotalResults(data.total)
     } catch (error) {
       console.error("Error fetching movies:", error)
     } finally {

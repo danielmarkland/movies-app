@@ -3,6 +3,49 @@ const BASE_URL = "https://0kadddxyh3.execute-api.us-east-1.amazonaws.com"
 let cachedToken: string | null = null
 let tokenExpiry = 0
 
+export interface Movie {
+  id: string
+  title: string
+  year: number
+  runtime: number
+  genres: string[]
+  director: string
+  actors: string
+  plot: string
+  posterUrl: string
+  imdbRating?: number
+  imdbVotes?: number
+}
+
+export interface MoviesResponse {
+  page: number
+  per_page: number
+  total: number
+  totalPages: number
+  data: Movie[]
+}
+
+export interface Genre {
+  id: string
+  title: string
+  movies: GenreMovie[]
+}
+
+export interface GenreMovie {
+  id: string
+}
+
+export interface GenreSummary {
+  id: string
+  title: string
+  movieCount: number
+}
+
+export interface GenresResponse {
+  data: Genre[];
+  totalPages: number;
+}
+
 export async function getAuthToken(): Promise<string|null> {
   if (cachedToken && Date.now() < tokenExpiry) {
     return cachedToken
@@ -25,34 +68,6 @@ export async function getAuthToken(): Promise<string|null> {
     console.error("Auth token error:", error)
     throw error
   }
-}
-
-export interface Movie {
-  id: string
-  title: string
-  year: number
-  runtime: number
-  genres: string[]
-  director: string
-  actors: string
-  plot: string
-  posterUrl: string
-  imdbRating?: number
-  imdbVotes?: number
-}
-
-export interface MoviesResponse {
-  page: number
-  per_page: number
-  total: number
-  total_pages: number
-  data: Movie[]
-}
-
-export interface GenreStats {
-  id: string
-  name: string
-  count: number
 }
 
 export async function searchMovies(params: {
@@ -86,6 +101,7 @@ export async function searchMovies(params: {
     }
 
     const data = await response.json()
+
     return data
   } catch (error) {
     console.error("Search movies error:", error)
@@ -93,7 +109,7 @@ export async function searchMovies(params: {
   }
 }
 
-export async function getGenres(): Promise<GenreStats[]> {
+export async function getGenres(): Promise<GenresResponse> {
   const token = await getAuthToken()
   const response = await fetch(`${BASE_URL}/genres/movies`, {
     headers: {
@@ -106,18 +122,48 @@ export async function getGenres(): Promise<GenreStats[]> {
     throw new Error("Failed to fetch genres")
   }
 
-  const data = await response.json()
+  return await response.json()
 
-  // Extract unique genres with counts
-  const genreMap = new Map<string, number>()
+  // const gen: GenreStats[] = data.data.map(
+  //   g => ({
+  //     g.id,
+  //     g.title
+  //   })
+  // )
 
-  for (const [genre, movieIds] of Object.entries(data)) {
-    if (Array.isArray(movieIds)) {
-      genreMap.set(genre, movieIds.length)
-    }
+  // // Extract unique genres with counts
+  // const genreMap = new Map<string, number>()
+
+  // for (const [genre, movieIds] of Object.entries(data)) {
+  //   if (Array.isArray(movieIds)) {
+  //     genreMap.set(genre, movieIds.length)
+  //   }
+  // }
+
+  // const genres = Array.from(genreMap.entries())
+  //   .map(([name, count]) => ({ id: name, name, count }))
+  //   .sort((a, b) => b.count - a.count)
+
+  // debugger;
+  // return genres;
+}
+
+export async function getGenreSummary(): Promise<GenreSummary[]> {
+  try {
+    const genreResponse = await getGenres();
+
+    const genreSummaries: GenreSummary[] = genreResponse.data.map(
+      g => ({
+        id: g.id,
+        name: g.title,
+        movieCount: g.movies.length
+      })
+    )
+
+    return genreSummaries;
   }
-
-  return Array.from(genreMap.entries())
-    .map(([name, count]) => ({ id: name, name, count }))
-    .sort((a, b) => b.count - a.count)
+  catch (error) {
+    console.error("Search movies error:", error)
+    throw error
+  }
 }

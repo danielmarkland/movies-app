@@ -1,9 +1,9 @@
-import { searchMovies, getGenres } from "@/lib/movies-api"
+import { searchMovies, getGenres, getGenreSummary } from "@/lib/movies-api"
 import { MovieSearch } from "@/components/movie-search"
 import { Film } from "lucide-react"
 
 export default async function Home() {
-  const [moviesData, genres] = await Promise.all([searchMovies({ page: 1, limit: 3 }), getGenres()])
+  const [moviesData, genres] = await Promise.all([searchMovies({ page: 1, limit: 3 }), getGenreSummary()])
   
   return (
     <div className="min-h-screen">
@@ -25,7 +25,7 @@ export default async function Home() {
         <MovieSearch
           initialMovies={moviesData.data}
           initialPage={moviesData.page}
-          initialTotalPages={moviesData.total_pages}
+          initialTotalPages={moviesData.totalPages}
           initialTotal={moviesData.total}
           genres={genres}
         />
@@ -33,7 +33,7 @@ export default async function Home() {
 
       <footer className="border-t border-border mt-16">
         <div className="container mx-auto px-4 py-6">
-          <p className="text-sm text-muted-foreground text-center">Movie data provided by Movies API</p>
+          <p className="text-sm text-muted-foreground text-center">&copy; Movie Data Inc</p>
         </div>
       </footer>
     </div>
