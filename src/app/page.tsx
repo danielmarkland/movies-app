@@ -26,7 +26,7 @@ export default async function Home() {
           initialMovies={moviesData.data}
           initialPage={moviesData.page}
           initialTotalPages={moviesData.totalPages}
-          initialTotal={moviesData.total}
+          initialTotal={moviesData.totalMovies}
           genres={genres}
         />
       </main>

@@ -23,6 +23,7 @@ export interface MovieSearchResponse {
 }
 
 export interface MovieListResponse {
+  page: number
   totalPages: number
   totalMovies: number
   data: Movie[]
@@ -128,6 +129,7 @@ export async function getMovieList(params: {
   const totalMovies = ((movieSearch.totalPages - 1) * params.limit!) + movieCountSearch.data.length;
 
   return {
+    page: params.page!,
     totalPages: movieSearch.totalPages,
     totalMovies: totalMovies,
     data: movieSearch.data
