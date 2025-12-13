@@ -74,6 +74,29 @@ export async function getAuthToken(): Promise<string|null> {
   }
 }
 
+export async function fetchWithAuth(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+) {
+  try{
+    const headers = new Headers(init.headers)
+    const token = await getAuthToken();
+  
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`)
+    }
+  
+    return fetch(input, {
+      ...init,
+      headers
+    })
+  }
+  catch (error) {
+    console.error("Authentication error:", error)
+    throw error
+  }
+}
+
 export async function searchMovies(params: {
   page?: number
   limit?: number
@@ -92,12 +115,7 @@ export async function searchMovies(params: {
 
     const url = `${BASE_URL}/movies?${queryParams.toString()}`
 
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    })
+    const response = await fetchWithAuth(url)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -138,12 +156,7 @@ export async function getMovieList(params: {
 
 export async function getGenres(): Promise<GenresResponse> {
   const token = await getAuthToken()
-  const response = await fetch(`${BASE_URL}/genres/movies`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    next: { revalidate: 3600 }, // Cache genres for 1 hour
-  })
+  const response = await fetchWithAuth(`${BASE_URL}/genres/movies`)
 
   if (!response.ok) {
     throw new Error("Failed to fetch genres")
