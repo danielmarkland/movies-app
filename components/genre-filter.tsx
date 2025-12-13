@@ -2,10 +2,10 @@
 
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import type { GenreStats } from "@/lib/movies-api"
+import type { GenreSummary } from "@/lib/movies-api"
 
 interface GenreFilterProps {
-  genres: GenreStats[]
+  genres: GenreSummary[]
   selectedGenre: string | null
   onGenreSelect: (genre: string | null) => void
 }
@@ -26,11 +26,11 @@ export function GenreFilter({ genres, selectedGenre, onGenreSelect }: GenreFilte
           {genres.map((genre) => (
             <Badge
               key={genre.id}
-              variant={selectedGenre === genre.name ? "default" : "outline"}
+              variant={selectedGenre === genre.title ? "default" : "outline"}
               className="cursor-pointer whitespace-nowrap"
-              onClick={() => onGenreSelect(genre.name)}
+              onClick={() => onGenreSelect(genre.title)}
             >
-              {genre.name}
+              {genre.title}
             </Badge>
           ))}
         </div>

@@ -123,29 +123,6 @@ export async function getGenres(): Promise<GenresResponse> {
   }
 
   return await response.json()
-
-  // const gen: GenreStats[] = data.data.map(
-  //   g => ({
-  //     g.id,
-  //     g.title
-  //   })
-  // )
-
-  // // Extract unique genres with counts
-  // const genreMap = new Map<string, number>()
-
-  // for (const [genre, movieIds] of Object.entries(data)) {
-  //   if (Array.isArray(movieIds)) {
-  //     genreMap.set(genre, movieIds.length)
-  //   }
-  // }
-
-  // const genres = Array.from(genreMap.entries())
-  //   .map(([name, count]) => ({ id: name, name, count }))
-  //   .sort((a, b) => b.count - a.count)
-
-  // debugger;
-  // return genres;
 }
 
 export async function getGenreSummary(): Promise<GenreSummary[]> {
@@ -155,7 +132,7 @@ export async function getGenreSummary(): Promise<GenreSummary[]> {
     const genreSummaries: GenreSummary[] = genreResponse.data.map(
       g => ({
         id: g.id,
-        name: g.title,
+        title: g.title,
         movieCount: g.movies.length
       })
     )
