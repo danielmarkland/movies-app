@@ -23,7 +23,7 @@ export function PaginationControls({ currentPage, totalPages, totalResults, onPa
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="gap-1"
+          className="gap-1 cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           Previous
@@ -39,7 +39,7 @@ export function PaginationControls({ currentPage, totalPages, totalResults, onPa
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="gap-1"
+          className="gap-1 cursor-pointer"
         >
           Next
           <ChevronRight className="w-4 h-4" />

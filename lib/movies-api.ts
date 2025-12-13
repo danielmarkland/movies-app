@@ -17,11 +17,14 @@ export interface Movie {
   imdbVotes?: number
 }
 
-export interface MoviesResponse {
-  page: number
-  per_page: number
-  total: number
+export interface MovieSearchResponse {
   totalPages: number
+  data: Movie[]
+}
+
+export interface MovieListResponse {
+  totalPages: number
+  totalMovies: number
   data: Movie[]
 }
 
@@ -75,7 +78,7 @@ export async function searchMovies(params: {
   limit?: number
   search?: string
   genre?: string
-}): Promise<MoviesResponse> {
+}): Promise<MovieSearchResponse> {
   try {
     const token = await getAuthToken()
 
@@ -107,6 +110,28 @@ export async function searchMovies(params: {
     console.error("Search movies error:", error)
     throw error
   }
+}
+
+export async function getMovieList(params: {
+  page?: number
+  limit?: number
+  search?: string
+  genre?: string
+}) : Promise<MovieListResponse> {
+  const movieSearch = await searchMovies(params);
+
+  //Get total count
+  const countParams = params;
+  countParams.page = movieSearch.totalPages;
+
+  const movieCountSearch = await searchMovies(countParams);
+  const totalMovies = ((movieSearch.totalPages - 1) * params.limit!) + movieCountSearch.data.length;
+
+  return {
+    totalPages: movieSearch.totalPages,
+    totalMovies: totalMovies,
+    data: movieSearch.data
+  };
 }
 
 export async function getGenres(): Promise<GenresResponse> {

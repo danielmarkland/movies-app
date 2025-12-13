@@ -1,9 +1,9 @@
-import { searchMovies, getGenres, getGenreSummary } from "@/lib/movies-api"
+import { searchMovies, getGenres, getGenreSummary, getMovieList } from "@/lib/movies-api"
 import { MovieSearch } from "@/components/movie-search"
 import { Film } from "lucide-react"
 
 export default async function Home() {
-  const [moviesData, genres] = await Promise.all([searchMovies({ page: 1, limit: 3 }), getGenreSummary()])
+  const [moviesData, genres] = await Promise.all([getMovieList({ page: 1, limit: 3 }), getGenreSummary()])
   
   return (
     <div className="min-h-screen">

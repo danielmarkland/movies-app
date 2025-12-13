@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Star } from "lucide-react"
 import type { Movie } from "@/lib/movies-api"
+import { ImageWithFallback } from "./image-fallback"
 
 interface MovieCardProps {
   movie: Movie
@@ -17,17 +18,10 @@ export function MovieCard({ movie }: MovieCardProps) {
   return (
     <Card className="overflow-hidden hover:ring-2 hover:ring-primary hover:cursor-pointer transition-all duration-200 group">
       <div className="aspect-[2/3] relative overflow-hidden bg-muted">
-        {movie.posterUrl ? (
-          <img
-            src={movie.posterUrl || "/placeholder.svg"}
-            alt={`${movie.title} poster`}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            No poster available
-          </div>
-        )}
+        <ImageWithFallback
+          src={movie.posterUrl}
+          alt={`${movie.title} poster`}
+        />
       </div>
       <CardContent className="p-4">
         <h3 className="font-semibold text-lg leading-tight mb-2 line-clamp-2 text-balance">{movie.title}</h3>

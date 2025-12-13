@@ -6,7 +6,7 @@ import { GenreFilter } from "./genre-filter"
 import { MovieCard } from "./movie-card"
 import { PaginationControls } from "./pagination-controls"
 import { Loader2 } from "lucide-react"
-import { Movie, searchMovies, GenreSummary } from "@/lib/movies-api"
+import { Movie, searchMovies, GenreSummary, getMovieList } from "@/lib/movies-api"
 
 interface MovieSearchProps {
   initialMovies: Movie[]
@@ -39,12 +39,12 @@ export function MovieSearch({
     setIsLoading(true)
     try {
 
-      const resp = await searchMovies({page: page, limit: 12, search: search, genre: genre!});
+      const resp = await getMovieList({page: page, limit: 12, search: search, genre: genre!});
 
       setMovies(resp.data);
       setCurrentPage(page);
       setTotalPages(resp.totalPages);
-      setTotalResults(resp.total);
+      setTotalResults(resp.totalMovies);
 
     } catch (error) {
       console.error("Error fetching movies:", error)
@@ -87,6 +87,13 @@ export function MovieSearch({
           </div>
         ) : (
           <>
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalResults={totalResults}
+              onPageChange={handlePageChange}
+            />
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {movies.map((movie) => (
                 <MovieCard key={movie.id} movie={movie} />
