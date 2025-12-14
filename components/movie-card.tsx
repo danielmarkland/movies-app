@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, Star } from "lucide-react"
 import type { Movie } from "@/lib/movies-api"
 import { ImageWithFallback } from "./image-fallback"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@radix-ui/react-tooltip"
 
 interface MovieCardProps {
   movie: Movie
@@ -52,7 +53,18 @@ export function MovieCard({ movie }: MovieCardProps) {
           </div>
         )}
 
-        {movie.plot && <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{movie.plot}</p>}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {movie.plot && <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{movie.plot}</p>}
+          </TooltipTrigger>
+          <TooltipContent
+            side="top"
+            align="start"
+            className="max-w-sm bg-background text-foreground border border-border p-3 rounded-md shadow-lg"
+          >
+            {movie.plot}
+          </TooltipContent>
+        </Tooltip>
       </CardContent>
     </Card>
   )
