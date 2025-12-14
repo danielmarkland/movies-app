@@ -1,4 +1,5 @@
 const BASE_URL = "https://0kadddxyh3.execute-api.us-east-1.amazonaws.com"
+const GRAPHQL_URL = `${BASE_URL}/graphql`
 
 let cachedToken: string | null = null
 let tokenExpiry = 0
@@ -97,6 +98,239 @@ export async function fetchWithAuth(
   }
 }
 
+interface GraphQLResponse<T> {
+  data?: T
+  errors?: { message: string }[]
+}
+
+interface GraphQLPagination {
+  page: number
+  perPage: number
+  totalPages: number
+}
+
+interface GraphQLGenreConnection {
+  nodes: Genre[]
+  pagination: GraphQLPagination
+}
+
+interface GraphQLMovieGenre {
+  id: string
+  title: string
+}
+
+interface GraphQLMovie {
+  id: string
+  title: string
+  posterUrl: string | null
+  summary: string | null
+  duration: string | null
+  directors: string[] | null
+  mainActors: string[] | null
+  datePublished: string | null
+  ratingValue: number | null
+  genres: GraphQLMovieGenre[] | null
+}
+
+interface GraphQLMovieConnection {
+  nodes: GraphQLMovie[]
+  pagination: GraphQLPagination
+}
+
+async function executeGraphQL<T>(
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<T> {
+  try {
+    const cleanedVariables =
+      variables && Object.keys(variables).length > 0 ? variables : undefined
+
+    const response = await fetchWithAuth(GRAPHQL_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        variables: cleanedVariables,
+      }),
+    })
+
+    const result = (await response.json()) as GraphQLResponse<T>
+
+    if (!response.ok || result.errors?.length) {
+      const messages =
+        result.errors?.map((error) => error.message).join(", ") ?? response.statusText
+      throw new Error(`GraphQL request failed: ${messages}`)
+    }
+
+    if (!result.data) {
+      throw new Error("GraphQL response was missing data")
+    }
+
+    return result.data
+  } catch (error) {
+    console.error("GraphQL request error:", error)
+    throw error
+  }
+}
+
+const MOVIE_LIST_QUERY = `
+  query SearchMovies($pagination: PaginationInput, $where: MovieFilterInput) {
+    movies(pagination: $pagination, where: $where) {
+      pagination {
+        page
+        perPage
+        totalPages
+      }
+      nodes {
+        id
+        title
+        posterUrl
+        summary
+        duration
+        directors
+        mainActors
+        datePublished
+        ratingValue
+        genres {
+          id
+          title
+        }
+      }
+    }
+  }
+`
+
+const GENRES_QUERY = `
+  query Genres($pagination: PaginationInput) {
+    genres(pagination: $pagination) {
+      pagination {
+        page
+        perPage
+        totalPages
+      }
+      nodes {
+        id
+        title
+        movies {
+          id
+        }
+      }
+    }
+  }
+`
+
+function buildMovieQueryVariables(params: {
+  page?: number
+  limit?: number
+  search?: string
+  genre?: string
+}) {
+  const pagination: Record<string, number> = {}
+  const where: Record<string, string> = {}
+
+  if (typeof params.page === "number") {
+    pagination.page = params.page
+  }
+  if (typeof params.limit === "number") {
+    pagination.perPage = params.limit
+  }
+  if (params.search) {
+    where.search = params.search
+  }
+  if (params.genre) {
+    where.genre = params.genre
+  }
+
+  return {
+    ...(Object.keys(pagination).length > 0 ? { pagination } : {}),
+    ...(Object.keys(where).length > 0 ? { where } : {}),
+  }
+}
+
+function parseDurationToMinutes(duration: string | null): number {
+  if (!duration) {
+    return 0
+  }
+
+  const match = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/)
+  if (!match) {
+    return 0
+  }
+
+  const [, hours, minutes, seconds] = match
+  const hoursInMinutes = hours ? Number.parseInt(hours, 10) * 60 : 0
+  const mins = minutes ? Number.parseInt(minutes, 10) : 0
+  const secs = seconds ? Number.parseInt(seconds, 10) : 0
+
+  return hoursInMinutes + mins + Math.round(secs / 60)
+}
+
+function mapGraphQLMovie(movie: GraphQLMovie): Movie {
+  const year = movie.datePublished
+    ? Number.parseInt(movie.datePublished.substring(0, 4), 10) || 0
+    : 0
+
+  return {
+    id: movie.id,
+    title: movie.title,
+    year,
+    runtime: parseDurationToMinutes(movie.duration),
+    genres: movie.genres?.map((genre) => genre.title) ?? [],
+    director: movie.directors?.join(", ") ?? "",
+    actors: movie.mainActors?.join(", ") ?? "",
+    plot: movie.summary ?? "",
+    posterUrl: movie.posterUrl ?? "",
+    imdbRating: movie.ratingValue ?? undefined,
+    imdbVotes: undefined,
+  }
+}
+
+async function fetchMovieConnection(params: {
+  page?: number
+  limit?: number
+  search?: string
+  genre?: string
+}): Promise<GraphQLMovieConnection> {
+  const variables = buildMovieQueryVariables(params)
+  const { movies } = await executeGraphQL<{ movies: GraphQLMovieConnection }>(
+    MOVIE_LIST_QUERY,
+    variables,
+  )
+
+  return movies
+}
+
+async function calculateTotalMovies(
+  params: {
+    page?: number
+    limit?: number
+    search?: string
+    genre?: string
+  },
+  pagination: GraphQLPagination,
+  currentPageCount: number,
+): Promise<number> {
+  if (pagination.totalPages <= 1) {
+    return currentPageCount
+  }
+
+  if (pagination.page === pagination.totalPages) {
+    return (pagination.totalPages - 1) * pagination.perPage + currentPageCount
+  }
+
+  const lastPageConnection = await fetchMovieConnection({
+    ...params,
+    page: pagination.totalPages,
+    limit: pagination.perPage,
+  })
+
+  return (
+    (pagination.totalPages - 1) * pagination.perPage + lastPageConnection.nodes.length
+  )
+}
+
 export async function searchMovies(params: {
   page?: number
   limit?: number
@@ -104,27 +338,13 @@ export async function searchMovies(params: {
   genre?: string
 }): Promise<MovieSearchResponse> {
   try {
-    const token = await getAuthToken()
+    const connection = await fetchMovieConnection(params)
+    const movies = connection.nodes.map(mapGraphQLMovie)
 
-    const queryParams = new URLSearchParams()
-
-    if (params.page) queryParams.append("page", params.page.toString())
-    if (params.limit) queryParams.append("limit", params.limit.toString())
-    if (params.search) queryParams.append("search", params.search)
-    if (params.genre) queryParams.append("genre", params.genre)
-
-    const url = `${BASE_URL}/movies?${queryParams.toString()}`
-
-    const response = await fetchWithAuth(url)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Failed to fetch movies: ${response.status} ${errorText}`)
+    return {
+      totalPages: connection.pagination.totalPages,
+      data: movies,
     }
-
-    const data = await response.json()
-
-    return data
   } catch (error) {
     console.error("Search movies error:", error)
     throw error
@@ -137,32 +357,53 @@ export async function getMovieList(params: {
   search?: string
   genre?: string
 }) : Promise<MovieListResponse> {
-  const movieSearch = await searchMovies(params);
+  try {
+    const connection = await fetchMovieConnection(params)
+    const movies = connection.nodes.map(mapGraphQLMovie)
+    const totalMovies = await calculateTotalMovies(
+      params,
+      connection.pagination,
+      movies.length,
+    )
 
-  //Get total count
-  const countParams = params;
-  countParams.page = movieSearch.totalPages;
-
-  const movieCountSearch = await searchMovies(countParams);
-  const totalMovies = ((movieSearch.totalPages - 1) * params.limit!) + movieCountSearch.data.length;
-
-  return {
-    page: params.page!,
-    totalPages: movieSearch.totalPages,
-    totalMovies: totalMovies,
-    data: movieSearch.data
-  };
+    return {
+      page: connection.pagination.page,
+      totalPages: connection.pagination.totalPages,
+      totalMovies,
+      data: movies,
+    }
+  } catch (error) {
+    console.error("Get movie list error:", error)
+    throw error
+  }
 }
 
 export async function getGenres(): Promise<GenresResponse> {
-  const token = await getAuthToken()
-  const response = await fetchWithAuth(`${BASE_URL}/genres/movies`)
+  const perPage = 50
+  let currentPage = 1
+  let totalPages = 1
+  const allGenres: Genre[] = []
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch genres")
+  try {
+    do {
+      const { genres } = await executeGraphQL<{ genres: GraphQLGenreConnection }>(
+        GENRES_QUERY,
+        { pagination: { page: currentPage, perPage } },
+      )
+
+      allGenres.push(...genres.nodes)
+      totalPages = genres.pagination.totalPages
+      currentPage += 1
+    } while (currentPage <= totalPages)
+
+    return {
+      data: allGenres,
+      totalPages,
+    }
+  } catch (error) {
+    console.error("Get genres error:", error)
+    throw error
   }
-
-  return await response.json()
 }
 
 export async function getGenreSummary(): Promise<GenreSummary[]> {
