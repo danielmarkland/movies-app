@@ -80,20 +80,38 @@ async function fetchWithAuth(
   input: RequestInfo | URL,
   init: RequestInit = {},
 ) {
-  try{
+  //
+  const buildRequestInit = async () => {
     const headers = new Headers(init.headers)
-    const token = await getAuthToken();
-  
+    const token = await getAuthToken()
+
     if (token) {
       headers.set("Authorization", `Bearer ${token}`)
     }
-  
-    return fetch(input, {
+
+    return {
       ...init,
-      headers
-    })
+      headers,
+    }
   }
-  catch (error) {
+
+  try {
+    const response = await fetch(input, await buildRequestInit())
+
+    if (response.status === 401) {
+      cachedToken = null
+      tokenExpiry = 0
+      const retryResponse = await fetch(input, await buildRequestInit())
+
+      if (retryResponse.status === 401) {
+        throw new Error("Authentication failed after token refresh")
+      }
+
+      return retryResponse
+    }
+
+    return response
+  } catch (error) {
     console.error("Authentication error:", error)
     throw error
   }
