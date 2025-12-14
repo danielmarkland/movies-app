@@ -6,7 +6,7 @@ import { SearchBar } from "./search-bar"
 import { GenreFilter } from "./genre-filter"
 import { MovieCard } from "./movie-card"
 import { PaginationControls } from "./pagination-controls"
-import { Loader2 } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 import type { GenreSummary, Movie, MovieListResponse } from "@/lib/movies-api"
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
 
@@ -46,6 +46,7 @@ export function MovieSearch({
   const [selectedGenre, setSelectedGenre] = useState<string | null>(genreFromUrl || null)
   const [isLoading, setIsLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const updateQueryParams = useMemo(() => {
     return (params: { page?: number; search?: string; genre?: string | null }) => {
@@ -104,8 +105,10 @@ export function MovieSearch({
       setCurrentPage(resp.page)
       setTotalPages(resp.totalPages)
       setTotalResults(resp.totalMovies)
+      setErrorMessage(null)
     } catch (error) {
       console.error("Error fetching movies:", error)
+      setErrorMessage(error instanceof Error ? error.message : "Something went wrong")
     } finally {
       setIsLoading(false)
     }
@@ -150,6 +153,16 @@ export function MovieSearch({
       </div>
 
       <div className="space-y-6">
+        {errorMessage && (
+          <div className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4" />
+            <div>
+              <p className="font-medium">Unable to load movies</p>
+              <p className="text-destructive/80">{errorMessage}</p>
+            </div>
+          </div>
+        )}
+
         {showLoader ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
