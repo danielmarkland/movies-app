@@ -28,13 +28,11 @@ export function MovieCard({ movie }: MovieCardProps) {
         <h3 className="font-semibold text-lg leading-tight mb-2 line-clamp-2 text-balance">{movie.title}</h3>
 
         <div className="flex items-center gap-3 mb-3 text-sm text-muted-foreground">
-          {movie.year && <span className="font-medium">{movie.year}</span>}
-          {movie.runtime && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{formatRuntime(movie.runtime)}</span>
-            </div>
-          )}
+          <span className="font-medium">{movie.year ?? "—"}</span>
+          <div className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            <span>{movie.runtime ? formatRuntime(movie.runtime) : "—"}</span>
+          </div>
           {movie.imdbRating && (
             <div className="flex items-center gap-1 text-primary">
               <Star className="w-3.5 h-3.5 fill-primary" />
