@@ -6,7 +6,7 @@ import { GenreFilter } from "./genre-filter"
 import { MovieCard } from "./movie-card"
 import { PaginationControls } from "./pagination-controls"
 import { Loader2 } from "lucide-react"
-import { Movie, searchMovies, GenreSummary, getMovieList } from "@/lib/movies-api"
+import type { GenreSummary, Movie, MovieListResponse } from "@/lib/movies-api"
 
 interface MovieSearchProps {
   initialMovies: Movie[]
@@ -38,14 +38,32 @@ export function MovieSearch({
   const fetchMovies = async (page: number, search: string, genre: string | null) => {
     setIsLoading(true)
     try {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: "12",
+      })
 
-      const resp = await getMovieList({page: page, limit: 12, search: search, genre: genre!});
+      if (search.trim()) {
+        queryParams.set("search", search.trim())
+      }
 
-      setMovies(resp.data);
-      setCurrentPage(page);
-      setTotalPages(resp.totalPages);
-      setTotalResults(resp.totalMovies);
+      if (genre) {
+        queryParams.set("genre", genre)
+      }
 
+      const response = await fetch(`/api/movies?${queryParams.toString()}`)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || "Failed to fetch movies")
+      }
+
+      const resp: MovieListResponse = await response.json()
+
+      setMovies(resp.data)
+      setCurrentPage(resp.page)
+      setTotalPages(resp.totalPages)
+      setTotalResults(resp.totalMovies)
     } catch (error) {
       console.error("Error fetching movies:", error)
     } finally {

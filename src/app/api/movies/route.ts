@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { searchMovies } from "@/lib/movies-api"
+import { getMovieList } from "@/lib/movies-api"
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || undefined
     const genre = searchParams.get("genre") || undefined
 
-    const data = await searchMovies({ page, limit, search, genre })
+    const data = await getMovieList({ page, limit, search, genre })
 
     return NextResponse.json(data)
   } catch (error) {
