@@ -4,7 +4,7 @@ View the deployed app at https://movies-app-puce-nu.vercel.app
 
 ## Screenshots
 
-<table style="width:100%; border-collapse:collapse; margin-top:0.75rem; border:none;">
+<table style="width:100%; table-layout:fixed; border-collapse:collapse; margin-top:0.75rem; border:none;">
   <thead>
     <tr style="background:#1f1f1f; color:#fff; border:none;">
       <th style="text-align:left; padding:0.75rem; border:none;">Default Search</th>
@@ -14,9 +14,9 @@ View the deployed app at https://movies-app-puce-nu.vercel.app
   </thead>
   <tbody>
     <tr style="border:none;">
-      <td valign="top" style="border:none;"><img src="public/screenshots/movies-app-default.png" alt="Default search screenshot" /></td>
-      <td valign="top" style="border:none;"><img src="public/screenshots/movies-app-error.png" alt="Error state screenshot" /></td>
-      <td valign="top" style="border:none;"><img src="public/screenshots/movies-app-no-results.png" alt="No results screenshot" /></td>
+      <td valign="top" style="border:none; width:33.33%;"><img src="public/screenshots/movies-app-default.jpeg" alt="Default search screenshot" /></td>
+      <td valign="top" style="border:none; width:33.33%;"><img src="public/screenshots/movies-app-error.jpeg" alt="Error state screenshot" /></td>
+      <td valign="top" style="border:none; width:33.33%;"><img src="public/screenshots/movies-app-no-results.png" alt="No results screenshot" /></td>
     </tr>
   </tbody>
 </table>
