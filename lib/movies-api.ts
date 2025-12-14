@@ -1,200 +1,10 @@
+//#region Constants
 const BASE_URL = "https://0kadddxyh3.execute-api.us-east-1.amazonaws.com"
 const AUTH_TOKEN_URL = `${BASE_URL}/auth/token`
 const GRAPHQL_URL = `${BASE_URL}/graphql`
+
 export const DEFAULT_PAGE_SIZE = 12
 export const TOKEN_TTL_MS = 30 * 60 * 1000
-
-let cachedToken: string | null = null
-let tokenExpiry = 0
-
-export interface Movie {
-  id: string
-  title: string
-  year?: number
-  runtime?: number
-  genres: string[]
-  director?: string
-  actors?: string
-  plot?: string
-  posterUrl?: string
-  imdbRating?: number
-  imdbVotes?: number
-}
-
-export interface MovieSearchResponse {
-  totalPages: number
-  data: Movie[]
-}
-
-export interface MovieListResponse {
-  page: number
-  totalPages: number
-  totalMovies: number
-  data: Movie[]
-}
-
-export interface Genre {
-  id: string
-  title: string
-  movies: GenreMovie[]
-}
-
-export interface GenreMovie {
-  id: string
-}
-
-export interface GenreSummary {
-  id: string
-  title: string
-  movieCount: number
-}
-
-export interface GenresResponse {
-  data: Genre[]
-  totalPages: number
-}
-
-async function getAuthToken(): Promise<string|null> {
-  if (cachedToken && Date.now() < tokenExpiry) {
-    return cachedToken
-  }
-
-  try {
-    const response = await fetch(AUTH_TOKEN_URL)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`Failed to fetch auth token: ${response.status} ${errorText}`)
-    }
-
-    const data = await response.json()
-    cachedToken = data.token
-    tokenExpiry = Date.now() + TOKEN_TTL_MS
-
-    return cachedToken
-  } catch (error) {
-    console.error("Auth token error:", error)
-    throw error
-  }
-}
-
-async function fetchWithAuth(
-  input: RequestInfo | URL,
-  init: RequestInit = {},
-) {
-  //
-  const buildRequestInit = async () => {
-    const headers = new Headers(init.headers)
-    const token = await getAuthToken()
-
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`)
-    }
-
-    return {
-      ...init,
-      headers,
-    }
-  }
-
-  try {
-    const response = await fetch(input, await buildRequestInit())
-
-    if (response.status === 401) {
-      cachedToken = null
-      tokenExpiry = 0
-      const retryResponse = await fetch(input, await buildRequestInit())
-
-      if (retryResponse.status === 401) {
-        throw new Error("Authentication failed after token refresh")
-      }
-
-      return retryResponse
-    }
-
-    return response
-  } catch (error) {
-    console.error("Authentication error:", error)
-    throw error
-  }
-}
-
-interface GraphQLResponse<T> {
-  data?: T
-  errors?: { message: string }[]
-}
-
-interface GraphQLPagination {
-  page: number
-  perPage: number
-  totalPages: number
-}
-
-interface GraphQLGenreConnection {
-  nodes: Genre[]
-  pagination: GraphQLPagination
-}
-
-interface GraphQLMovieGenre {
-  id: string
-  title: string
-}
-
-interface GraphQLMovie {
-  id: string
-  title: string
-  posterUrl: string | null
-  summary: string | null
-  duration: string | null
-  directors: string[] | null
-  mainActors: string[] | null
-  datePublished: string | null
-  ratingValue: number | null
-  genres: GraphQLMovieGenre[] | null
-}
-
-interface GraphQLMovieConnection {
-  nodes: GraphQLMovie[]
-  pagination: GraphQLPagination
-}
-
-async function executeGraphQL<T>(
-  query: string,
-  variables?: Record<string, unknown>,
-): Promise<T> {
-  try {
-    const cleanedVariables =
-      variables && Object.keys(variables).length > 0 ? variables : undefined
-
-    const response = await fetchWithAuth(GRAPHQL_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query,
-        variables: cleanedVariables,
-      }),
-    })
-
-    const result = (await response.json()) as GraphQLResponse<T>
-
-    if (!response.ok || result.errors?.length) {
-      const messages =
-        result.errors?.map((error) => error.message).join(", ") ?? response.statusText
-      throw new Error(`GraphQL request failed: ${messages}`)
-    }
-
-    if (!result.data) {
-      throw new Error("GraphQL response was missing data")
-    }
-
-    return result.data
-  } catch (error) {
-    console.error("GraphQL request error:", error)
-    throw error
-  }
-}
 
 const MOVIE_LIST_QUERY = `
   query SearchMovies($pagination: PaginationInput, $where: MovieFilterInput) {
@@ -241,6 +51,199 @@ const GENRES_QUERY = `
     }
   }
 `
+//#endregion
+
+//#region Token Cache
+let cachedToken: string | null = null
+let tokenExpiry = 0
+//#endregion
+
+//#region Interfaces
+export interface Movie {
+  id: string
+  title: string
+  year?: number
+  runtime?: number
+  genres: string[]
+  director?: string
+  actors?: string
+  plot?: string
+  posterUrl?: string
+  imdbRating?: number
+  imdbVotes?: number
+}
+
+export interface MovieListResponse {
+  page: number
+  totalPages: number
+  totalMovies: number
+  data: Movie[]
+}
+
+export interface Genre {
+  id: string
+  title: string
+  movies: GenreMovie[]
+}
+
+export interface GenreMovie {
+  id: string
+}
+
+export interface GenreSummary {
+  id: string
+  title: string
+  movieCount: number
+}
+
+export interface GenresResponse {
+  data: Genre[]
+  totalPages: number
+}
+
+interface GraphQLResponse<T> {
+  data?: T
+  errors?: { message: string }[]
+}
+
+interface GraphQLPagination {
+  page: number
+  perPage: number
+  totalPages: number
+}
+
+interface GraphQLMovieGenre {
+  id: string
+  title: string
+}
+
+interface GraphQLMovie {
+  id: string
+  title: string
+  posterUrl: string | null
+  summary: string | null
+  duration: string | null
+  directors: string[] | null
+  mainActors: string[] | null
+  datePublished: string | null
+  ratingValue: number | null
+  genres: GraphQLMovieGenre[] | null
+}
+
+interface GraphQLMovieConnection {
+  nodes: GraphQLMovie[]
+  pagination: GraphQLPagination
+}
+
+interface GraphQLGenreConnection {
+  nodes: Genre[]
+  pagination: GraphQLPagination
+}
+//#endregion
+
+//#region Functions
+async function getAuthToken(): Promise<string|null> {
+  if (cachedToken && Date.now() < tokenExpiry) {
+    return cachedToken
+  }
+
+  try {
+    const response = await fetch(AUTH_TOKEN_URL)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Failed to fetch auth token: ${response.status} ${errorText}`)
+    }
+
+    const data = await response.json()
+    cachedToken = data.token
+    tokenExpiry = Date.now() + TOKEN_TTL_MS
+
+    return cachedToken
+  } catch (error) {
+    console.error("Auth token error:", error)
+    throw error
+  }
+}
+
+async function fetchWithAuth(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+) {
+  
+  const buildRequestInit = async () => {
+    const headers = new Headers(init.headers)
+    const token = await getAuthToken()
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`)
+    }
+
+    return {
+      ...init,
+      headers,
+    }
+  }
+
+  try {
+    const response = await fetch(input, await buildRequestInit())
+
+    if (response.status === 401) {
+      cachedToken = null
+      tokenExpiry = 0
+      const retryResponse = await fetch(input, await buildRequestInit())
+
+      if (retryResponse.status === 401) {
+        throw new Error("Authentication failed after token refresh")
+      }
+
+      return retryResponse
+    }
+
+    return response
+  } catch (error) {
+    console.error("Authentication error:", error)
+    throw error
+  }
+}
+
+async function executeGraphQL<T>(
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<T> {
+  try {
+    const cleanedVariables =
+      variables && Object.keys(variables).length > 0 ? variables : undefined
+
+    const response = await fetchWithAuth(GRAPHQL_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query,
+        variables: cleanedVariables,
+      }),
+    })
+
+    const result = (await response.json()) as GraphQLResponse<T>
+
+    if (!response.ok || result.errors?.length) {
+      const messages =
+        result.errors?.map((error) => error.message).join(", ") ?? response.statusText
+      throw new Error(`GraphQL request failed: ${messages}`)
+    }
+
+    if (!result.data) {
+      throw new Error("GraphQL response was missing data")
+    }
+
+    return result.data
+  } catch (error) {
+    console.error("GraphQL request error:", error)
+    throw error
+  }
+}
 
 function buildMovieQueryVariables(params: {
   page?: number
@@ -312,7 +315,7 @@ function mapGraphQLMovie(movie: GraphQLMovie): Movie {
   }
 }
 
-async function fetchMovieConnection(params: {
+async function searchMovies(params: {
   page?: number
   limit?: number
   search?: string
@@ -345,7 +348,7 @@ async function calculateTotalMovies(
     return (pagination.totalPages - 1) * pagination.perPage + currentPageCount
   }
 
-  const lastPageConnection = await fetchMovieConnection({
+  const lastPageConnection = await searchMovies({
     ...params,
     page: pagination.totalPages,
     limit: pagination.perPage,
@@ -356,26 +359,6 @@ async function calculateTotalMovies(
   )
 }
 
-async function searchMovies(params: {
-  page?: number
-  limit?: number
-  search?: string
-  genre?: string
-}): Promise<MovieSearchResponse> {
-  try {
-    const connection = await fetchMovieConnection(params)
-    const movies = connection.nodes.map(mapGraphQLMovie)
-
-    return {
-      totalPages: connection.pagination.totalPages,
-      data: movies,
-    }
-  } catch (error) {
-    console.error("Search movies error:", error)
-    throw error
-  }
-}
-
 export async function getMovieList(params: {
   page?: number
   limit?: number
@@ -383,7 +366,7 @@ export async function getMovieList(params: {
   genre?: string
 }) : Promise<MovieListResponse> {
   try {
-    const connection = await fetchMovieConnection(params)
+    const connection = await searchMovies(params)
     const movies = connection.nodes.map(mapGraphQLMovie)
     const totalMovies = await calculateTotalMovies(
       params,
@@ -438,9 +421,12 @@ export async function getGenreSummary(): Promise<GenreSummary[]> {
     throw error
   }
 }
+//#endregion
 
+//#region Unit Testing
 export const __testables = {
   parseDurationToMinutes,
   mapGraphQLMovie,
   buildMovieQueryVariables,
 }
+//#endregion

@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Search, X } from "lucide-react"
 
@@ -11,23 +10,6 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ value, onChange, onSearch }: SearchBarProps) {
-  const onSearchRef = useRef(onSearch)
-
-  useEffect(() => {
-    onSearchRef.current = onSearch
-  }, [onSearch])
-
-  useEffect(() => {
-    if (!onSearchRef.current) {
-      return
-    }
-    const timer = setTimeout(() => {
-      onSearchRef.current?.(value)
-    }, 500)
-
-    return () => clearTimeout(timer)
-  }, [value])
-
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
@@ -40,6 +22,10 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps) {
           if (event.key === "Escape" && value) {
             event.preventDefault()
             onChange("")
+          }
+          if (event.key === "Enter") {
+            event.preventDefault()
+            onSearch?.(value)
           }
         }}
         className="pl-10 pr-10 h-12 text-base"

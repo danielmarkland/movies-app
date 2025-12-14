@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useTransition, useState, useEffect } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { SearchBar } from "./search-bar"
 import { GenreFilter } from "./genre-filter"
@@ -8,7 +8,6 @@ import { MovieCard } from "./movie-card"
 import { PaginationControls } from "./pagination-controls"
 import { AlertCircle, Loader2 } from "lucide-react"
 import type { GenreSummary, Movie, MovieListResponse } from "@/lib/movies-api"
-import { DEFAULT_PAGE_SIZE } from "@/lib/movies-api"
 
 interface MovieSearchProps {
   initialMovies: Movie[]
@@ -48,18 +47,24 @@ export function MovieSearch({
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
-
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const lastAppliedParamsRef = useRef(searchParams.toString())
 
   useEffect(() => {
     return () => {
-      debounceTimerRef.current && clearTimeout(debounceTimerRef.current)
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
+      }
       abortControllerRef.current?.abort()
     }
   }, [])
 
-  const updateQueryParams = useMemo(() => {
-    return (params: { page?: number; search?: string; genre?: string | null }) => {
+  const updateQueryParams = useCallback(
+    (params: { page?: number; search?: string; genre?: string | null }) => {
       const current = new URLSearchParams(searchParams.toString())
 
       if (typeof params.page === "number") {
@@ -82,15 +87,25 @@ export function MovieSearch({
         }
       }
 
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      const nextQuery = current.toString()
+      if (nextQuery === lastAppliedParamsRef.current) {
+        return
+      }
+
+      lastAppliedParamsRef.current = nextQuery
+
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
 
       debounceTimerRef.current = setTimeout(() => {
-        router.replace(`${pathname}?${current.toString()}`, { scroll: false })
+        router.replace(`${pathname}?${nextQuery}`, { scroll: false })
       }, 200)
-    }
-  }, [pathname, router, searchParams])
+    },
+    [pathname, router, searchParams],
+  )
 
-  const fetchMovies = async (page: number, search: string, genre: string | null) => {
+  const fetchMovies = useCallback(async (page: number, search: string, genre: string | null) => {
     abortControllerRef.current?.abort()
     const abortController = new AbortController()
     abortControllerRef.current = abortController
@@ -98,7 +113,6 @@ export function MovieSearch({
     try {
       const queryParams = new URLSearchParams({
         page: page.toString(),
-        limit: DEFAULT_PAGE_SIZE.toString(),
       })
 
       if (search.trim()) {
@@ -134,34 +148,77 @@ export function MovieSearch({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  const triggerSearch = useCallback(
+    (page: number, query: string, genre: string | null) => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
+        searchDebounceRef.current = null
+      }
+      startTransition(() => {
+        updateQueryParams({ page, search: query, genre })
+      })
+      setCurrentPage(page)
+      fetchMovies(page, query, genre)
+    },
+    [fetchMovies, startTransition, updateQueryParams],
+  )
+
+  const scheduleSearch = useCallback(
+    (query: string, genre: string | null) => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
+      }
+      searchDebounceRef.current = setTimeout(() => {
+        triggerSearch(1, query, genre)
+      }, 300)
+    },
+    [triggerSearch],
+  )
+
+  useEffect(() => {
+    const paramsString = searchParams.toString()
+    if (paramsString === lastAppliedParamsRef.current) {
+      return
+    }
+
+    lastAppliedParamsRef.current = paramsString
+
+    const nextSearch = searchParams.get("search") ?? initialSearch ?? ""
+    const urlGenre = searchParams.get("genre")
+    const nextGenre =
+      urlGenre !== null ? urlGenre : initialGenre ? initialGenre : null
+    const nextPageParam = Number.parseInt(searchParams.get("page") || "", 10)
+    const nextPage =
+      Number.isNaN(nextPageParam) || nextPageParam < 1 ? initialPage : nextPageParam
+
+    setSearchQuery(nextSearch)
+    setSelectedGenre(nextGenre)
+    setCurrentPage(nextPage)
+    fetchMovies(nextPage, nextSearch, nextGenre)
+  }, [fetchMovies, initialGenre, initialPage, initialSearch, searchParams])
 
   const handleSearchInputChange = (value: string) => {
     setSearchQuery(value)
+    scheduleSearch(value, selectedGenre)
   }
 
-  const handleSearch = (query: string) => {
-    startTransition(() => {
-      updateQueryParams({ page: 1, search: query })
-    })
-    setCurrentPage(1)
-    fetchMovies(1, query, selectedGenre)
+  const handleSearchSubmit = () => {
+    triggerSearch(1, searchQuery, selectedGenre)
   }
 
   const handleGenreSelect = (genre: string | null) => {
-    startTransition(() => {
-      updateQueryParams({ page: 1, genre })
-    })
     setSelectedGenre(genre)
-    setCurrentPage(1)
-    fetchMovies(1, searchQuery, genre)
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current)
+      searchDebounceRef.current = null
+    }
+    triggerSearch(1, searchQuery, genre)
   }
 
   const handlePageChange = (page: number) => {
-    startTransition(() => {
-      updateQueryParams({ page })
-    })
-    fetchMovies(page, searchQuery, selectedGenre)
+    triggerSearch(page, searchQuery, selectedGenre)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -170,7 +227,11 @@ export function MovieSearch({
   return (
     <div className="space-y-8">
       <div className="space-y-6">
-        <SearchBar value={searchQuery} onChange={handleSearchInputChange} onSearch={handleSearch} />
+        <SearchBar
+          value={searchQuery}
+          onChange={handleSearchInputChange}
+          onSearch={handleSearchSubmit}
+        />
         <GenreFilter genres={genres} selectedGenre={selectedGenre} onGenreSelect={handleGenreSelect} />
       </div>
 
