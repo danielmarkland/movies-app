@@ -1,4 +1,4 @@
-import { searchMovies, getGenres, getGenreSummary, getMovieList } from "@/lib/movies-api"
+import { getGenreSummary, getMovieList } from "@/lib/movies-api"
 import { MovieSearch } from "@/components/movie-search"
 import { Film } from "lucide-react"
 

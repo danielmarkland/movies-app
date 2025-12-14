@@ -1,4 +1,5 @@
 const BASE_URL = "https://0kadddxyh3.execute-api.us-east-1.amazonaws.com"
+const AUTH_TOKEN_URL = `${BASE_URL}/auth/token`
 const GRAPHQL_URL = `${BASE_URL}/graphql`
 
 let cachedToken: string | null = null
@@ -51,13 +52,13 @@ export interface GenresResponse {
   totalPages: number;
 }
 
-export async function getAuthToken(): Promise<string|null> {
+async function getAuthToken(): Promise<string|null> {
   if (cachedToken && Date.now() < tokenExpiry) {
     return cachedToken
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/auth/token`)
+    const response = await fetch(AUTH_TOKEN_URL)
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -66,7 +67,7 @@ export async function getAuthToken(): Promise<string|null> {
 
     const data = await response.json()
     cachedToken = data.token
-    tokenExpiry = Date.now() + 50 * 60 * 1000 // Cache for 50 minutes
+    tokenExpiry = Date.now() + 30 * 60 * 1000 // Cache for 30 minutes
 
     return cachedToken
   } catch (error) {
@@ -75,7 +76,7 @@ export async function getAuthToken(): Promise<string|null> {
   }
 }
 
-export async function fetchWithAuth(
+async function fetchWithAuth(
   input: RequestInfo | URL,
   init: RequestInit = {},
 ) {
@@ -335,7 +336,7 @@ async function calculateTotalMovies(
   )
 }
 
-export async function searchMovies(params: {
+async function searchMovies(params: {
   page?: number
   limit?: number
   search?: string
@@ -382,27 +383,15 @@ export async function getMovieList(params: {
   }
 }
 
-export async function getGenres(): Promise<GenresResponse> {
-  const perPage = 50
-  let currentPage = 1
-  let totalPages = 1
-  const allGenres: Genre[] = []
-
+async function getGenres(): Promise<GenresResponse> {
   try {
-    do {
-      const { genres } = await executeGraphQL<{ genres: GraphQLGenreConnection }>(
-        GENRES_QUERY,
-        { pagination: { page: currentPage, perPage } },
-      )
-
-      allGenres.push(...genres.nodes)
-      totalPages = genres.pagination.totalPages
-      currentPage += 1
-    } while (currentPage <= totalPages)
+    const { genres } = await executeGraphQL<{ genres: GraphQLGenreConnection }>(
+      GENRES_QUERY,
+    )
 
     return {
-      data: allGenres,
-      totalPages,
+      data: genres.nodes,
+      totalPages: genres.pagination.totalPages,
     }
   } catch (error) {
     console.error("Get genres error:", error)
