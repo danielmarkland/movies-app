@@ -135,6 +135,13 @@ interface GraphQLMovieConnection {
   pagination: GraphQLPagination
 }
 
+export interface MovieQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  genre?: string
+}
+
 interface GraphQLGenreConnection {
   nodes: Genre[]
   pagination: GraphQLPagination
@@ -245,12 +252,7 @@ async function executeGraphQL<T>(
   }
 }
 
-function buildMovieQueryVariables(params: {
-  page?: number
-  limit?: number
-  search?: string
-  genre?: string
-}) {
+function buildMovieQueryVariables(params: MovieQueryParams) {
   const pagination: Record<string, number> = {}
   const where: Record<string, string> = {}
 
@@ -315,12 +317,7 @@ function mapGraphQLMovie(movie: GraphQLMovie): Movie {
   }
 }
 
-async function searchMovies(params: {
-  page?: number
-  limit?: number
-  search?: string
-  genre?: string
-}): Promise<GraphQLMovieConnection> {
+async function searchMovies(params: MovieQueryParams): Promise<GraphQLMovieConnection> {
   const variables = buildMovieQueryVariables(params)
   const { movies } = await executeGraphQL<{ movies: GraphQLMovieConnection }>(
     MOVIE_LIST_QUERY,
@@ -331,12 +328,7 @@ async function searchMovies(params: {
 }
 
 async function calculateTotalMovies(
-  params: {
-    page?: number
-    limit?: number
-    search?: string
-    genre?: string
-  },
+  params: MovieQueryParams,
   pagination: GraphQLPagination,
   currentPageCount: number,
 ): Promise<number> {
@@ -359,12 +351,7 @@ async function calculateTotalMovies(
   )
 }
 
-export async function getMovieList(params: {
-  page?: number
-  limit?: number
-  search?: string
-  genre?: string
-}) : Promise<MovieListResponse> {
+export async function getMovieList(params: MovieQueryParams) : Promise<MovieListResponse> {
   try {
     const connection = await searchMovies(params)
     const movies = connection.nodes.map(mapGraphQLMovie)
