@@ -21,6 +21,12 @@ View the deployed app at https://movies-app-puce-nu.vercel.app
   </tbody>
 </table>
 
+## General / Overview
+
+This project is a movie search experience backed by a GraphQL API, with secure token handling and a URL-synced search flow that keeps pagination, genres, and query text aligned. The UI leans on Tailwind’s design tokens for light/dark parity, includes resilient poster rendering with fallbacks, and ships with lightweight unit tests around the API helpers so the core data mapping logic stays reliable.
+
+I considered submitting the project from a fresh repository, but opted to keep the full commit history intact. The transparency felt more valuable so you can see how the implementation evolved.
+
 ## API Feedback
 
 - The REST surface lacks a lightweight `/genres` endpoint, so pulling the list of genre filters via `/genres/movies` without hundreds of embedded movies wasn’t feasible. I leaned on GraphQL to fetch only the needed fields.
@@ -29,19 +35,43 @@ View the deployed app at https://movies-app-puce-nu.vercel.app
 
 ## Highlights
 
+The most noteworthy design and implementation decisions I made:
+
 - **Dark mode & theming**: Tailwind tokens keep the UI consistent across light/dark, including cards, filters, and pagination.
 - **Poster fallback with loader**: `ImageWithFallback` shows a spinner while images stream in and swaps to a readable text message if the poster fails.
 - **Secure data fetching**: The auth helper acquires tokens, retries once on 401, and surfaces actionable errors to the UI.
 - **URL-synced search**: Search text, genre, and page stay mirrored in the URL, with debounced updates, abortable fetches, and both “Esc” and “X” clear actions.
 - **Card polish**: Movie plots show tooltips on hover so truncation doesn’t hide the full summary.
-- **API tests**: Node’s built-in test runner covers the parsing helpers. (I’d typically reach for Vitest once the suite grows.)
+- **API tests**: Node’s built-in test runner covers the parsing helpers. (I’d typically opt for Jest or Vitest once the suite grows.)
 
+## What I'm Proud Of
+
+I’m most proud of how I handled the search-total requirement despite the API not providing a total record count. I treated this as an intentional real-world constraint and implemented a clean double-fetch strategy with secure token handling and unified error management, without requiring any backend changes. In a production setting, I would normally advocate for addressing this at the API level.
+
+Other noteworthy items:
+
+- Delivering secure, resilient data fetching (token refresh, unified error handling).
+- Keeping the search experience fast and intuitive by syncing URL state, debouncing updates, and seeding SSR data to avoid layout shift.
+- Adding polish touches (poster fallback with spinner, tooltipped plots, clear search controls) that make the UI feel thoughtful.
+- Writing lightweight API unit tests that prove the parsing/mapping logic works and will stay stable.
+- Maintaining a transparent commit history so reviewers can follow the full implementation journey.
 ## If I Had More Time
 
-- Reintroduce React Query once data needs to be shared across components or mutated frequently; the current single-consumer flow didn’t justify the dependency.
+Given more time, I would consider the following improvements:
+
 - Expand test coverage (token-refresh paths, GraphQL error cases) and move shared constants into a dedicated module.
+  - Add a light E2E test suite to exercise critical flows (search, pagination, error handling) under real browser conditions.
+- Build accessibility upgrades: tighter keyboard support for pagination/filters, ARIA-live announcements for loading/error states, and high-contrast theme adjustments.
+
+As the project grows, I would consider the following additions:
 - Add GraphQL codegen and tighter typing once the schema stabilizes, plus richer browse features (watchlists, trailers) when the API supports them.
+- Extract repeat Tailwind patterns into `@layer components` utilities via `@apply`. For now the styles are varied enough that centralizing them would be overkill, but I’d adopt that approach once the reuse surface is clearer.
+- Introduce React Query once data needs to be shared across components or mutated more frequently, providing a centralized caching and invalidation strategy. The current single-consumer flow didn’t justify the added dependency.
+- Implement localized formatting and i18n scaffolding so runtime strings, dates, and numbers adapt cleanly for other locales.
+- Add performance monitoring (Lighthouse CI, Web Vitals) to catch bundle and interaction regressions early.
+- Explore offline-friendly caching of the last successful search/genre list so users see useful data even with spotty connectivity.
+- Layer in observability (Sentry, OpenTelemetry) around GraphQL fetches/token refreshes to spot production issues quickly.
 
 ## AI Usage
 
-I implemented the feature work manually—including the GraphQL implementation, search UX, and UI polish. I used OpenAI’s Codex only for small assists, primarily to accelerate unit-test scaffolding. All architectural decisions, implementation details, and final code are my own, and I can discuss any part of the solution in depth.
+I implemented the feature work manually - including the GraphQL implementation, search UX, and UI polish. I used OpenAI’s Codex only for small assists, primarily to accelerate unit-test scaffolding. All architectural decisions, implementation details, and final code are my own, and I can discuss any part of the solution in depth.
