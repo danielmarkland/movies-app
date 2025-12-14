@@ -437,3 +437,9 @@ export async function getGenreSummary(): Promise<GenreSummary[]> {
     throw error
   }
 }
+
+export const __testables = {
+  parseDurationToMinutes,
+  mapGraphQLMovie,
+  buildMovieQueryVariables,
+}
