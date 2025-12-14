@@ -36,6 +36,12 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps) {
         placeholder="Search for movies..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && value) {
+            event.preventDefault()
+            onChange("")
+          }
+        }}
         className="pl-10 pr-10 h-12 text-base"
       />
       {value && (

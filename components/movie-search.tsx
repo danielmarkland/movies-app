@@ -115,29 +115,31 @@ export function MovieSearch({
   }
 
   const handleSearch = (query: string) => {
-    startTransition(async () => {
+    startTransition(() => {
       updateQueryParams({ page: 1, search: query })
-      setCurrentPage(1)
-      await fetchMovies(1, query, selectedGenre)
     })
+    setCurrentPage(1)
+    fetchMovies(1, query, selectedGenre)
   }
 
   const handleGenreSelect = (genre: string | null) => {
-    startTransition(async () => {
+    startTransition(() => {
       updateQueryParams({ page: 1, genre })
-      setSelectedGenre(genre)
-      setCurrentPage(1)
-      await fetchMovies(1, searchQuery, genre)
     })
+    setSelectedGenre(genre)
+    setCurrentPage(1)
+    fetchMovies(1, searchQuery, genre)
   }
 
   const handlePageChange = (page: number) => {
-    startTransition(async () => {
+    startTransition(() => {
       updateQueryParams({ page })
-      await fetchMovies(page, searchQuery, selectedGenre)
-      window.scrollTo({ top: 0, behavior: "smooth" })
     })
+    fetchMovies(page, searchQuery, selectedGenre)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
+
+  const showLoader = isLoading || isPending
 
   return (
     <div className="space-y-8">
@@ -147,7 +149,7 @@ export function MovieSearch({
       </div>
 
       <div className="space-y-6">
-        {isLoading ? (
+        {showLoader ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
