@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useTransition, useState } from "react"
+import { useMemo, useRef, useTransition, useState, useEffect } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { SearchBar } from "./search-bar"
 import { GenreFilter } from "./genre-filter"
@@ -8,7 +8,7 @@ import { MovieCard } from "./movie-card"
 import { PaginationControls } from "./pagination-controls"
 import { AlertCircle, Loader2 } from "lucide-react"
 import type { GenreSummary, Movie, MovieListResponse } from "@/lib/movies-api"
-import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
+import { DEFAULT_PAGE_SIZE } from "@/lib/movies-api"
 
 interface MovieSearchProps {
   initialMovies: Movie[]
@@ -49,9 +49,16 @@ export function MovieSearch({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const updateQueryParams = useMemo(() => {
-    let debounceTimer: NodeJS.Timeout | null = null
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
+  useEffect(() => {
+    return () => {
+      debounceTimerRef.current && clearTimeout(debounceTimerRef.current)
+      abortControllerRef.current?.abort()
+    }
+  }, [])
+
+  const updateQueryParams = useMemo(() => {
     return (params: { page?: number; search?: string; genre?: string | null }) => {
       const current = new URLSearchParams(searchParams.toString())
 
@@ -75,9 +82,9 @@ export function MovieSearch({
         }
       }
 
-      if (debounceTimer) clearTimeout(debounceTimer)
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
-      debounceTimer = setTimeout(() => {
+      debounceTimerRef.current = setTimeout(() => {
         router.replace(`${pathname}?${current.toString()}`, { scroll: false })
       }, 200)
     }

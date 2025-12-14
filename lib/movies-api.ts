@@ -1,7 +1,8 @@
 const BASE_URL = "https://0kadddxyh3.execute-api.us-east-1.amazonaws.com"
 const AUTH_TOKEN_URL = `${BASE_URL}/auth/token`
 const GRAPHQL_URL = `${BASE_URL}/graphql`
-const TOKEN_TTL_MS = 30 * 60 * 1000
+export const DEFAULT_PAGE_SIZE = 12
+export const TOKEN_TTL_MS = 30 * 60 * 1000
 
 let cachedToken: string | null = null
 let tokenExpiry = 0
