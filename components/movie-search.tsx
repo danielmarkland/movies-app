@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useTransition, useState } from "react"
+import { useMemo, useRef, useTransition, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { SearchBar } from "./search-bar"
 import { GenreFilter } from "./genre-filter"
@@ -47,8 +47,11 @@ export function MovieSearch({
   const [isLoading, setIsLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const updateQueryParams = useMemo(() => {
+    let debounceTimer: NodeJS.Timeout | null = null
+
     return (params: { page?: number; search?: string; genre?: string | null }) => {
       const current = new URLSearchParams(searchParams.toString())
 
@@ -72,11 +75,18 @@ export function MovieSearch({
         }
       }
 
-      router.replace(`${pathname}?${current.toString()}`, { scroll: false })
+      if (debounceTimer) clearTimeout(debounceTimer)
+
+      debounceTimer = setTimeout(() => {
+        router.replace(`${pathname}?${current.toString()}`, { scroll: false })
+      }, 200)
     }
   }, [pathname, router, searchParams])
 
   const fetchMovies = async (page: number, search: string, genre: string | null) => {
+    abortControllerRef.current?.abort()
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
     setIsLoading(true)
     try {
       const queryParams = new URLSearchParams({
@@ -92,7 +102,9 @@ export function MovieSearch({
         queryParams.set("genre", genre)
       }
 
-      const response = await fetch(`/api/movies?${queryParams.toString()}`)
+      const response = await fetch(`/api/movies?${queryParams.toString()}`, {
+        signal: abortController.signal,
+      })
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -107,6 +119,9 @@ export function MovieSearch({
       setTotalResults(resp.totalMovies)
       setErrorMessage(null)
     } catch (error) {
+      if ((error as DOMException).name === "AbortError") {
+        return
+      }
       console.error("Error fetching movies:", error)
       setErrorMessage(error instanceof Error ? error.message : "Something went wrong")
     } finally {
