@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { getGenreSummary, getMovieList } from "@/lib/movies-api"
 import { MovieSearch } from "@/components/movie-search"
 import { Film } from "lucide-react"
@@ -22,14 +23,22 @@ export default async function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <MovieSearch
-          initialMovies={moviesData.data}
-          initialPage={moviesData.page}
-          initialTotalPages={moviesData.totalPages}
-          initialTotal={moviesData.totalMovies}
-          genres={genres}
-        />
-      </main>
+        <Suspense
+          fallback={
+            <div className="flex justify-center py-20">
+              <span className="text-muted-foreground">Loading search...</span>
+            </div>
+          }
+        >
+          <MovieSearch
+            initialMovies={moviesData.data}
+            initialPage={moviesData.page}
+            initialTotalPages={moviesData.totalPages}
+            initialTotal={moviesData.totalMovies}
+            genres={genres}
+          />
+        </Suspense>
+     </main>
 
       <footer className="border-t border-border mt-16">
         <div className="container mx-auto px-4 py-6">
