@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 
 type ImageOrFallbackProps = {
-  src: string
+  src?: string
   alt: string
   fallbackText?: string
   className?: string

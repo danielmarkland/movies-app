@@ -7,13 +7,13 @@ let tokenExpiry = 0
 export interface Movie {
   id: string
   title: string
-  year: number
-  runtime: number
+  year?: number
+  runtime?: number
   genres: string[]
-  director: string
-  actors: string
-  plot: string
-  posterUrl: string
+  director?: string
+  actors?: string
+  plot?: string
+  posterUrl?: string
   imdbRating?: number
   imdbVotes?: number
 }
@@ -249,39 +249,43 @@ function buildMovieQueryVariables(params: {
   }
 }
 
-function parseDurationToMinutes(duration: string | null): number {
+function parseDurationToMinutes(duration: string | null): number | undefined {
   if (!duration) {
-    return 0
+    return undefined
   }
 
   const match = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/)
   if (!match) {
-    return 0
+    return undefined
   }
 
   const [, hours, minutes, seconds] = match
   const hoursInMinutes = hours ? Number.parseInt(hours, 10) * 60 : 0
   const mins = minutes ? Number.parseInt(minutes, 10) : 0
   const secs = seconds ? Number.parseInt(seconds, 10) : 0
+  const totalMinutes = hoursInMinutes + mins + Math.round(secs / 60)
 
-  return hoursInMinutes + mins + Math.round(secs / 60)
+  return totalMinutes > 0 ? totalMinutes : undefined
 }
 
 function mapGraphQLMovie(movie: GraphQLMovie): Movie {
-  const year = movie.datePublished
-    ? Number.parseInt(movie.datePublished.substring(0, 4), 10) || 0
-    : 0
+  const parsedYear = movie.datePublished
+    ? Number.parseInt(movie.datePublished.substring(0, 4), 10)
+    : undefined
+  const year =
+    typeof parsedYear === "number" && !Number.isNaN(parsedYear) ? parsedYear : undefined
+  const runtime = parseDurationToMinutes(movie.duration)
 
   return {
     id: movie.id,
     title: movie.title,
     year,
-    runtime: parseDurationToMinutes(movie.duration),
+    runtime,
     genres: movie.genres?.map((genre) => genre.title) ?? [],
-    director: movie.directors?.join(", ") ?? "",
-    actors: movie.mainActors?.join(", ") ?? "",
-    plot: movie.summary ?? "",
-    posterUrl: movie.posterUrl ?? "",
+    director: movie.directors?.length ? movie.directors.join(", ") : undefined,
+    actors: movie.mainActors?.length ? movie.mainActors.join(", ") : undefined,
+    plot: movie.summary ?? undefined,
+    posterUrl: movie.posterUrl ?? undefined,
     imdbRating: movie.ratingValue ?? undefined,
     imdbVotes: undefined,
   }

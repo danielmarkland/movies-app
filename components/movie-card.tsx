@@ -28,7 +28,7 @@ export function MovieCard({ movie }: MovieCardProps) {
         <h3 className="font-semibold text-lg leading-tight mb-2 line-clamp-2 text-balance">{movie.title}</h3>
 
         <div className="flex items-center gap-3 mb-3 text-sm text-muted-foreground">
-          <span className="font-medium">{movie.year}</span>
+          {movie.year && <span className="font-medium">{movie.year}</span>}
           {movie.runtime && (
             <div className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" />
@@ -53,18 +53,20 @@ export function MovieCard({ movie }: MovieCardProps) {
           </div>
         )}
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {movie.plot && <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{movie.plot}</p>}
-          </TooltipTrigger>
-          <TooltipContent
-            side="top"
-            align="start"
-            className="max-w-sm bg-background text-foreground border border-border p-3 rounded-md shadow-lg"
-          >
-            {movie.plot}
-          </TooltipContent>
-        </Tooltip>
+        {movie.plot && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{movie.plot}</p>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              align="start"
+              className="max-w-sm bg-background text-foreground border border-border p-3 rounded-md shadow-lg"
+            >
+              {movie.plot}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </CardContent>
     </Card>
   )
