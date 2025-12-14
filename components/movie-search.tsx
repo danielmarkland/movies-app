@@ -8,6 +8,7 @@ import { MovieCard } from "./movie-card"
 import { PaginationControls } from "./pagination-controls"
 import { Loader2 } from "lucide-react"
 import type { GenreSummary, Movie, MovieListResponse } from "@/lib/movies-api"
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
 
 interface MovieSearchProps {
   initialMovies: Movie[]
@@ -79,7 +80,7 @@ export function MovieSearch({
     try {
       const queryParams = new URLSearchParams({
         page: page.toString(),
-        limit: "12",
+        limit: DEFAULT_PAGE_SIZE.toString(),
       })
 
       if (search.trim()) {

@@ -2,9 +2,10 @@ import { Suspense } from "react"
 import { getGenreSummary, getMovieList } from "@/lib/movies-api"
 import { MovieSearch } from "@/components/movie-search"
 import { Film } from "lucide-react"
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants"
 
 export default async function Home() {
-  const [moviesData, genres] = await Promise.all([getMovieList({ page: 1, limit: 3 }), getGenreSummary()])
+  const [moviesData, genres] = await Promise.all([getMovieList({ page: 1, limit: DEFAULT_PAGE_SIZE }), getGenreSummary()])
   
   return (
     <div className="min-h-screen">

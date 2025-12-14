@@ -1,6 +1,7 @@
 const BASE_URL = "https://0kadddxyh3.execute-api.us-east-1.amazonaws.com"
 const AUTH_TOKEN_URL = `${BASE_URL}/auth/token`
 const GRAPHQL_URL = `${BASE_URL}/graphql`
+const TOKEN_TTL_MS = 30 * 60 * 1000
 
 let cachedToken: string | null = null
 let tokenExpiry = 0
@@ -48,8 +49,8 @@ export interface GenreSummary {
 }
 
 export interface GenresResponse {
-  data: Genre[];
-  totalPages: number;
+  data: Genre[]
+  totalPages: number
 }
 
 async function getAuthToken(): Promise<string|null> {
@@ -67,7 +68,7 @@ async function getAuthToken(): Promise<string|null> {
 
     const data = await response.json()
     cachedToken = data.token
-    tokenExpiry = Date.now() + 30 * 60 * 1000 // Cache for 30 minutes
+    tokenExpiry = Date.now() + TOKEN_TTL_MS
 
     return cachedToken
   } catch (error) {
@@ -419,7 +420,7 @@ async function getGenres(): Promise<GenresResponse> {
 
 export async function getGenreSummary(): Promise<GenreSummary[]> {
   try {
-    const genreResponse = await getGenres();
+    const genreResponse = await getGenres()
 
     const genreSummaries: GenreSummary[] = genreResponse.data.map(
       g => ({
@@ -429,7 +430,7 @@ export async function getGenreSummary(): Promise<GenreSummary[]> {
       })
     )
 
-    return genreSummaries;
+    return genreSummaries
   }
   catch (error) {
     console.error("Search movies error:", error)
