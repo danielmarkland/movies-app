@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useTransition, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { SearchBar } from "./search-bar"
 import { GenreFilter } from "./genre-filter"
 import { MovieCard } from "./movie-card"
@@ -27,13 +28,51 @@ export function MovieSearch({
   initialSearch = "",
   initialGenre = "",
 }: MovieSearchProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+
+  const queryFromUrl = searchParams.get("search") ?? initialSearch
+  const genreFromUrl = searchParams.get("genre") ?? initialGenre
+  const pageFromUrl = Number.parseInt(searchParams.get("page") || "", 10)
+  const resolvedPage = Number.isNaN(pageFromUrl) || pageFromUrl < 1 ? initialPage : pageFromUrl
+
   const [movies, setMovies] = useState<Movie[]>(initialMovies)
-  const [currentPage, setCurrentPage] = useState(initialPage)
+  const [currentPage, setCurrentPage] = useState(resolvedPage)
   const [totalPages, setTotalPages] = useState(initialTotalPages)
   const [totalResults, setTotalResults] = useState(initialTotal)
-  const [searchQuery, setSearchQuery] = useState(initialSearch)
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(initialGenre || null)
+  const [searchQuery, setSearchQuery] = useState(queryFromUrl)
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(genreFromUrl || null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  const updateQueryParams = useMemo(() => {
+    return (params: { page?: number; search?: string; genre?: string | null }) => {
+      const current = new URLSearchParams(searchParams.toString())
+
+      if (typeof params.page === "number") {
+        current.set("page", params.page.toString())
+      }
+
+      if (params.search !== undefined) {
+        if (params.search.trim()) {
+          current.set("search", params.search.trim())
+        } else {
+          current.delete("search")
+        }
+      }
+
+      if (params.genre !== undefined) {
+        if (params.genre) {
+          current.set("genre", params.genre)
+        } else {
+          current.delete("genre")
+        }
+      }
+
+      router.replace(`${pathname}?${current.toString()}`, { scroll: false })
+    }
+  }, [pathname, router, searchParams])
 
   const fetchMovies = async (page: number, search: string, genre: string | null) => {
     setIsLoading(true)
@@ -71,25 +110,39 @@ export function MovieSearch({
     }
   }
 
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value)
+  }
+
   const handleSearch = (query: string) => {
-    setSearchQuery(query)
-    fetchMovies(1, query, selectedGenre)
+    startTransition(async () => {
+      updateQueryParams({ page: 1, search: query })
+      setCurrentPage(1)
+      await fetchMovies(1, query, selectedGenre)
+    })
   }
 
   const handleGenreSelect = (genre: string | null) => {
-    setSelectedGenre(genre)
-    fetchMovies(1, searchQuery, genre)
+    startTransition(async () => {
+      updateQueryParams({ page: 1, genre })
+      setSelectedGenre(genre)
+      setCurrentPage(1)
+      await fetchMovies(1, searchQuery, genre)
+    })
   }
 
   const handlePageChange = (page: number) => {
-    fetchMovies(page, searchQuery, selectedGenre)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    startTransition(async () => {
+      updateQueryParams({ page })
+      await fetchMovies(page, searchQuery, selectedGenre)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    })
   }
 
   return (
     <div className="space-y-8">
       <div className="space-y-6">
-        <SearchBar onSearch={handleSearch} defaultValue={searchQuery} />
+        <SearchBar value={searchQuery} onChange={handleSearchInputChange} onSearch={handleSearch} />
         <GenreFilter genres={genres} selectedGenre={selectedGenre} onGenreSelect={handleGenreSelect} />
       </div>
 

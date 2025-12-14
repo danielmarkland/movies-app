@@ -1,16 +1,16 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
 interface SearchBarProps {
-  onSearch: (query: string) => void
-  defaultValue?: string
+  value: string
+  onChange: (value: string) => void
+  onSearch?: (query: string) => void
 }
 
-export function SearchBar({ onSearch, defaultValue = "" }: SearchBarProps) {
-  const [query, setQuery] = useState(defaultValue)
+export function SearchBar({ value, onChange, onSearch }: SearchBarProps) {
   const onSearchRef = useRef(onSearch)
 
   useEffect(() => {
@@ -18,12 +18,15 @@ export function SearchBar({ onSearch, defaultValue = "" }: SearchBarProps) {
   }, [onSearch])
 
   useEffect(() => {
+    if (!onSearchRef.current) {
+      return
+    }
     const timer = setTimeout(() => {
-      onSearchRef.current(query)
+      onSearchRef.current?.(value)
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [query])
+  }, [value])
 
   return (
     <div className="relative">
@@ -31,8 +34,8 @@ export function SearchBar({ onSearch, defaultValue = "" }: SearchBarProps) {
       <Input
         type="text"
         placeholder="Search for movies..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className="pl-10 h-12 text-base"
       />
     </div>
