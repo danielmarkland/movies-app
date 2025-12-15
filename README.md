@@ -71,6 +71,7 @@ As the project grows, I would consider the following additions:
 - Add performance monitoring (Lighthouse CI, Web Vitals) to catch bundle and interaction regressions early.
 - Explore offline-friendly caching of the last successful search/genre list so users see useful data even with spotty connectivity.
 - Layer in observability (Sentry, OpenTelemetry) around GraphQL fetches/token refreshes to spot production issues quickly.
+- Implement analytics for key flows (search/query submissions, genre selections, error states) so both marketing and engineering can spot usage trends, quantify regressions, and justify future investments.
 
 ## AI Usage
 
