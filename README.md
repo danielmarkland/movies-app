@@ -66,11 +66,12 @@ Given more time, I would consider the following improvements:
 As the project grows, I would consider the following additions:
 - Add GraphQL codegen and tighter typing once the schema stabilizes, plus richer browse features (watchlists, trailers) when the API supports them.
 - Extract repeat Tailwind patterns into `@layer components` utilities via `@apply`. For now the styles are varied enough that centralizing them would be overkill, but I’d adopt that approach once the reuse surface is clearer.
-- Introduce React Query once data needs to be shared across components or mutated more frequently, providing a centralized caching and invalidation strategy. The current single-consumer flow didn’t justify the added dependency.
+- Introduce React Query once data needs to be shared across components or mutated more frequently, providing a centralized caching and invalidation. The current single-consumer flow didn’t justify the added dependency.
 - Implement localized formatting and i18n scaffolding so runtime strings, dates, and numbers adapt cleanly for other locales.
 - Add performance monitoring (Lighthouse CI, Web Vitals) to catch bundle and interaction regressions early.
 - Explore offline-friendly caching of the last successful search/genre list so users see useful data even with spotty connectivity.
 - Layer in observability (Sentry, OpenTelemetry) around GraphQL fetches/token refreshes to spot production issues quickly.
+- When global concerns emerge (favorites, watchlists, shared filters), introduce a predictable state layer (Redux Toolkit/Zustand) to avoid prop drilling and simplify debugging.
 - Implement analytics for key flows (search/query submissions, genre selections, error states) so both marketing and engineering can spot usage trends, quantify regressions, and justify future investments.
 
 ## AI Usage
